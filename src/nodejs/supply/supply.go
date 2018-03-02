@@ -82,7 +82,7 @@ type engines struct {
 	Iojs string `json:"iojs"`
 }
 
-func Run(s *Supplier) error dir
+func Run(s *Supplier) error {
 	dirChecksum := checksum.New(s.Stager.BuildDir(), s.Log.Debug)
 
 	s.Log.BeginStep("Installing binaries")
