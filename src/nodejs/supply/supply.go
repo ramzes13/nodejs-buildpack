@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/cloudfoundry/libbuildpack"
+	"github.com/cloudfoundry/libbuildpack/checksum"
 )
 
 type Cache interface {
@@ -81,7 +82,9 @@ type engines struct {
 	Iojs string `json:"iojs"`
 }
 
-func Run(s *Supplier) error {
+func Run(s *Supplier) error dir
+	dirChecksum := checksum.New(s.Stager.BuildDir(), s.Log.Debug)
+
 	s.Log.BeginStep("Installing binaries")
 	if err := s.LoadPackageJSON(); err != nil {
 		s.Log.Error("Unable to load package.json: %s", err.Error())
@@ -164,6 +167,8 @@ func Run(s *Supplier) error {
 		s.Log.Error(err.Error())
 		return err
 	}
+
+	dirChecksum.After()
 
 	return nil
 }
