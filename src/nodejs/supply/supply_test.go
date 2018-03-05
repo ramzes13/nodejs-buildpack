@@ -863,9 +863,36 @@ var _ = Describe("Supply", func() {
 		})
 
 		Context("yarn.lock does not exist", func() {
-			It("runs npm install", func() {
-				mockNPM.EXPECT().Build(buildDir).Return(nil)
+			BeforeEach(func() {
+				Expect(ioutil.WriteFile(filepath.Join(buildDir, "package.json"), []byte("My Packages"), 0644)).To(Succeed())
+			})
+			FIt("runs npm install on a copy of package.json inside deps directory", func() {
+				mockNPM.EXPECT().Build(filepath.Join(depDir, "packages")).Return(nil)
 				Expect(supplier.BuildDependencies()).To(Succeed())
+
+				Expect(ioutil.ReadFile(filepath.Join(depDir, "packages", "package.json"))).To(Equal([]byte("My Packages")))
+			})
+			FIt("copies npm version locking files", func() {
+				Expect(ioutil.WriteFile(filepath.Join(buildDir, "npm-shrinkwrap.json"), []byte("My Shrinkwrap"), 0644)).To(Succeed())
+				Expect(ioutil.WriteFile(filepath.Join(buildDir, "package-lock.json"), []byte("My PackageLock"), 0644)).To(Succeed())
+
+				mockNPM.EXPECT().Build(filepath.Join(depDir, "packages")).Return(nil)
+				Expect(supplier.BuildDependencies()).To(Succeed())
+
+				Expect(ioutil.ReadFile(filepath.Join(depDir, "packages", "package-lock.json"))).To(Equal([]byte("My PackageLock")))
+				Expect(ioutil.ReadFile(filepath.Join(depDir, "packages", "npm-shrinkwrap.json"))).To(Equal([]byte("My Shrinkwrap")))
+			})
+			FIt("Sets NODE_PATH environment file", func() {
+				mockNPM.EXPECT().Build(filepath.Join(depDir, "packages")).Return(nil)
+				Expect(supplier.BuildDependencies()).To(Succeed())
+
+				Expect(ioutil.ReadFile(filepath.Join(depDir, "env", "NODE_PATH"))).To(Equal([]byte(filepath.Join(depDir, "packages", "node_modules"))))
+			})
+			FIt("Sets NODE_PATH environment variable", func() {
+				mockNPM.EXPECT().Build(filepath.Join(depDir, "packages")).Return(nil)
+				Expect(supplier.BuildDependencies()).To(Succeed())
+
+				Expect(os.Getenv("NODE_PATH")).To(Equal(filepath.Join(depDir, "packages", "node_modules")))
 			})
 
 			Context("prebuild is specified", func() {

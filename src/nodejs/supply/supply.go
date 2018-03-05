@@ -256,6 +256,19 @@ func (s *Supplier) BuildDependencies() error {
 	// finalize TODO
 	// mv /deps/N/packages/node_modules -> app/node_modules
 	// unset NODE_PATH
+
+	pkgDir := filepath.Join(s.Stager.DepDir(), "packages")
+	for _, filename := range []string{"package.json", "package-lock.json", "npm-shrinkwrap.json"} {
+		libbuildpack.CopyFile(filepath.Join(s.Stager.BuildDir(), filename), filepath.Join(pkgDir, filename))
+	}
+
+	if err := s.Stager.WriteEnvFile("NODE_PATH", filepath.Join(pkgDir, "node_modules")); err != nil {
+		return err
+	}
+	if err := os.Setenv("NODE_PATH", filepath.Join(pkgDir, "node_modules")); err != nil {
+		return err
+	}
+
 	if s.UseYarn {
 		if err := s.Yarn.Build(s.Stager.BuildDir()); err != nil {
 			return err
@@ -267,7 +280,7 @@ func (s *Supplier) BuildDependencies() error {
 				return err
 			}
 		} else {
-			if err := s.NPM.Build(s.Stager.BuildDir()); err != nil {
+			if err := s.NPM.Build(pkgDir); err != nil {
 				return err
 			}
 		}
