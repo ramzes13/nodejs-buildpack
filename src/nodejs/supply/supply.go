@@ -246,12 +246,14 @@ func (s *Supplier) BuildDependencies() error {
 	}
 
 	if s.UseYarn {
+		// TODO this case
 		if err := s.Yarn.Build(); err != nil {
 			return err
 		}
 	} else {
 		if s.NPMRebuild {
 			s.Log.Info("Prebuild detected (node_modules already exists)")
+			// if err := libbuildpack.CopyDirectory(filepath.Join(s.Stager.BuildDir(), "node_modules"), ,/
 			if err := s.NPM.Rebuild(); err != nil {
 				return err
 			}
