@@ -219,9 +219,10 @@ var _ = Describe("CF NodeJS Buildpack", func() {
 	Context("with an app with no vendored dependencies", func() {
 		BeforeEach(func() {
 			app = cutlass.New(filepath.Join(bpDir, "fixtures", "no_vendored_dependencies"))
+			app.SetEnv("BP_DEBUG", "true")
 		})
 
-		It("successfully deploys and vendors the dependencies", func() {
+		FIt("successfully deploys and vendors the dependencies", func() {
 			PushAppAndConfirm(app)
 
 			Expect(filepath.Join(app.Path, "node_modules")).ToNot(BeADirectory())
@@ -232,6 +233,8 @@ var _ = Describe("CF NodeJS Buildpack", func() {
 			By("outputs protip that recommends user vendors dependencies", func() {
 				Expect(app.Stdout.String()).To(MatchRegexp("PRO TIP:(.*) It is recommended to vendor the application's Node.js dependencies"))
 			})
+
+			Expect(app).To(HaveUnchangedAppdir("BuildDir Checksum Before Supply", "BuildDir Checksum After Supply"))
 		})
 
 		AssertUsesProxyDuringStagingIfPresent("no_vendored_dependencies")
