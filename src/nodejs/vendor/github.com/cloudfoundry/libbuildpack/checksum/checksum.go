@@ -13,9 +13,9 @@ import (
 )
 
 type Checksum struct {
-	dir     string
-	debug   func(format string, args ...interface{})
-	tmpFile string
+	dir           string
+	debug         func(format string, args ...interface{})
+	timestampFile string
 }
 
 func New(dir string, debug func(format string, args ...interface{})) *Checksum {
@@ -23,7 +23,7 @@ func New(dir string, debug func(format string, args ...interface{})) *Checksum {
 
 	if f, err := ioutil.TempFile("", "checksum"); err == nil {
 		f.Close()
-		c.tmpFile = f.Name()
+		c.timestampFile = f.Name()
 	}
 
 	if sum, err := c.calc(); err == nil {
@@ -38,8 +38,8 @@ func (c *Checksum) After() {
 		c.debug("BuildDir Checksum After Supply: %s", sum)
 	}
 
-	if c.tmpFile != "" {
-		if filesChanged, err := (&libbuildpack.Command{}).Output(c.dir, "find", ".", "-newer", c.tmpFile, "-not", "-path", "./.cloudfoundry/*", "-not", "-path", "./.cloudfoundry"); err == nil && filesChanged != "" {
+	if c.timestampFile != "" {
+		if filesChanged, err := (&libbuildpack.Command{}).Output(c.dir, "find", ".", "-newer", c.timestampFile, "-not", "-path", "./.cloudfoundry/*", "-not", "-path", "./.cloudfoundry"); err == nil && filesChanged != "" {
 			c.debug("Below files changed:")
 			c.debug(filesChanged)
 		}

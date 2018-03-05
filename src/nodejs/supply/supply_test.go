@@ -830,7 +830,7 @@ var _ = Describe("Supply", func() {
 		Context("yarn.lock exists", func() {
 			BeforeEach(func() {
 				supplier.UseYarn = true
-				mockYarn.EXPECT().Build().Return(nil)
+				mockYarn.EXPECT().Build(buildDir).Return(nil)
 			})
 
 			It("runs yarn install", func() {
@@ -864,13 +864,13 @@ var _ = Describe("Supply", func() {
 
 		Context("yarn.lock does not exist", func() {
 			It("runs npm install", func() {
-				mockNPM.EXPECT().Build().Return(nil)
+				mockNPM.EXPECT().Build(buildDir).Return(nil)
 				Expect(supplier.BuildDependencies()).To(Succeed())
 			})
 
 			Context("prebuild is specified", func() {
 				BeforeEach(func() {
-					mockNPM.EXPECT().Build().Return(nil)
+					mockNPM.EXPECT().Build(buildDir).Return(nil)
 					supplier.PreBuild = "prescriptive"
 				})
 
@@ -883,7 +883,7 @@ var _ = Describe("Supply", func() {
 
 			Context("npm rebuild is specified", func() {
 				BeforeEach(func() {
-					mockNPM.EXPECT().Rebuild().Return(nil)
+					mockNPM.EXPECT().Rebuild(buildDir).Return(nil)
 					supplier.NPMRebuild = true
 				})
 
@@ -895,7 +895,7 @@ var _ = Describe("Supply", func() {
 
 			Context("postbuild is specified", func() {
 				BeforeEach(func() {
-					mockNPM.EXPECT().Build().Return(nil)
+					mockNPM.EXPECT().Build(buildDir).Return(nil)
 					supplier.PostBuild = "descriptive"
 				})
 

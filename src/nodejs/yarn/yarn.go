@@ -15,26 +15,25 @@ type Command interface {
 }
 
 type Yarn struct {
-	BuildDir string
-	Command  Command
-	Log      *libbuildpack.Logger
+	Command Command
+	Log     *libbuildpack.Logger
 }
 
-func (y *Yarn) Build() error {
+func (y *Yarn) Build(buildDir string) error {
 	y.Log.Info("Installing node modules (yarn.lock)")
 
-	npmOfflineCache := filepath.Join(y.BuildDir, "npm-packages-offline-cache")
+	npmOfflineCache := filepath.Join(buildDir, "npm-packages-offline-cache")
 	offline, err := libbuildpack.FileExists(npmOfflineCache)
 	if err != nil {
 		return err
 	}
 
-	installArgs := []string{"install", "--pure-lockfile", "--ignore-engines", "--cache-folder", filepath.Join(y.BuildDir, ".cache/yarn")}
+	installArgs := []string{"install", "--pure-lockfile", "--ignore-engines", "--cache-folder", filepath.Join(buildDir, ".cache/yarn")}
 	checkArgs := []string{"check"}
 
 	if offline {
 		y.Log.Info("Found yarn mirror directory %s", npmOfflineCache)
-		if err := y.Command.Execute(y.BuildDir, y.Log.Output(), y.Log.Output(), "yarn", "config", "set", "yarn-offline-mirror", npmOfflineCache); err != nil {
+		if err := y.Command.Execute(buildDir, y.Log.Output(), y.Log.Output(), "yarn", "config", "set", "yarn-offline-mirror", npmOfflineCache); err != nil {
 			return err
 		}
 		y.Log.Info("Running yarn in offline mode")
@@ -49,11 +48,11 @@ func (y *Yarn) Build() error {
 	os.Setenv("npm_config_nodedir", os.Getenv("NODE_HOME"))
 	defer os.Unsetenv("npm_config_nodedir")
 
-	if err := y.Command.Execute(y.BuildDir, y.Log.Output(), y.Log.Output(), "yarn", installArgs...); err != nil {
+	if err := y.Command.Execute(buildDir, y.Log.Output(), y.Log.Output(), "yarn", installArgs...); err != nil {
 		return err
 	}
 
-	if err := y.Command.Execute(y.BuildDir, ioutil.Discard, os.Stderr, "yarn", checkArgs...); err != nil {
+	if err := y.Command.Execute(buildDir, ioutil.Discard, os.Stderr, "yarn", checkArgs...); err != nil {
 		if _, ok := err.(*exec.ExitError); !ok {
 			return err
 		}

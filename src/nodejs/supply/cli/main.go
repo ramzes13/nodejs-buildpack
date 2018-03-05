@@ -68,14 +68,12 @@ func main() {
 		Logfile: logfile,
 		Stager:  stager,
 		Yarn: &yarn.Yarn{
-			BuildDir: stager.BuildDir(),
-			Command:  &libbuildpack.Command{},
-			Log:      logger,
+			Command: &libbuildpack.Command{},
+			Log:     logger,
 		},
 		NPM: &npm.NPM{
-			BuildDir: stager.BuildDir(),
-			Command:  &libbuildpack.Command{},
-			Log:      logger,
+			Command: &libbuildpack.Command{},
+			Log:     logger,
 		},
 		Manifest: manifest,
 		Log:      logger,

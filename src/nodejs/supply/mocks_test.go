@@ -206,27 +206,27 @@ func (m *MockNPM) EXPECT() *MockNPMMockRecorder {
 }
 
 // Build mocks base method
-func (m *MockNPM) Build() error {
-	ret := m.ctrl.Call(m, "Build")
+func (m *MockNPM) Build(arg0 string) error {
+	ret := m.ctrl.Call(m, "Build", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Build indicates an expected call of Build
-func (mr *MockNPMMockRecorder) Build() *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Build", reflect.TypeOf((*MockNPM)(nil).Build))
+func (mr *MockNPMMockRecorder) Build(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Build", reflect.TypeOf((*MockNPM)(nil).Build), arg0)
 }
 
 // Rebuild mocks base method
-func (m *MockNPM) Rebuild() error {
-	ret := m.ctrl.Call(m, "Rebuild")
+func (m *MockNPM) Rebuild(arg0 string) error {
+	ret := m.ctrl.Call(m, "Rebuild", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Rebuild indicates an expected call of Rebuild
-func (mr *MockNPMMockRecorder) Rebuild() *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rebuild", reflect.TypeOf((*MockNPM)(nil).Rebuild))
+func (mr *MockNPMMockRecorder) Rebuild(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rebuild", reflect.TypeOf((*MockNPM)(nil).Rebuild), arg0)
 }
 
 // MockYarn is a mock of Yarn interface
@@ -253,15 +253,15 @@ func (m *MockYarn) EXPECT() *MockYarnMockRecorder {
 }
 
 // Build mocks base method
-func (m *MockYarn) Build() error {
-	ret := m.ctrl.Call(m, "Build")
+func (m *MockYarn) Build(arg0 string) error {
+	ret := m.ctrl.Call(m, "Build", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Build indicates an expected call of Build
-func (mr *MockYarnMockRecorder) Build() *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Build", reflect.TypeOf((*MockYarn)(nil).Build))
+func (mr *MockYarnMockRecorder) Build(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Build", reflect.TypeOf((*MockYarn)(nil).Build), arg0)
 }
 
 // MockStager is a mock of Stager interface
