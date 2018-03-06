@@ -245,44 +245,57 @@ func (s *Supplier) BuildDependencies() error {
 		return err
 	}
 
-	// /app/package.json
-	// /app/package.lock.json (?)
-	// /app/npm.shrinkwrap (?)
-	// /app/yarn stuff
-	// /app/node_modules (OR $NODE_PATH)
-	// /deps/N/packages/... (create && copy above)
-	// os.Setenv("NODE_PATH","/deps/N/packages/node_modules") (current process and /env/NODE_PATH)
+	// TODO
+	// - Unit tests
+	//   - yarn install
+	// - Integration tests
+	//   - Yarn build (and rebuild if exists)
 
-	// finalize TODO
-	// mv /deps/N/packages/node_modules -> app/node_modules
-	// unset NODE_PATH
-
+	// app/
+	//   package.json
+	//   package-lock.json
+	//   node_modules/
+	// deps/:idx
+	//   packages/
+	//     package.json
+	//     package-lock.json
+	//     node_modules/
 	pkgDir := filepath.Join(s.Stager.DepDir(), "packages")
-	for _, filename := range []string{"package.json", "package-lock.json", "npm-shrinkwrap.json"} {
-		libbuildpack.CopyFile(filepath.Join(s.Stager.BuildDir(), filename), filepath.Join(pkgDir, filename))
-	}
-
-	if err := s.Stager.WriteEnvFile("NODE_PATH", filepath.Join(pkgDir, "node_modules")); err != nil {
+	nodePath := filepath.Join(pkgDir, "node_modules")
+	if err := os.MkdirAll(nodePath, 0755); err != nil {
 		return err
 	}
-	if err := os.Setenv("NODE_PATH", filepath.Join(pkgDir, "node_modules")); err != nil {
+
+	for _, filename := range []string{"package.json", "package-lock.json", "npm-shrinkwrap.json", "yarn.lock"} {
+		if err := libbuildpack.CopyFile(filepath.Join(s.Stager.BuildDir(), filename), filepath.Join(pkgDir, filename)); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
+
+	if err := libbuildpack.CopyDirectory(filepath.Join(s.Stager.BuildDir(), "node_modules"), nodePath); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	if err := s.Stager.WriteEnvFile("NODE_PATH", nodePath); err != nil {
+		return err
+	}
+
+	if err := os.Setenv("NODE_PATH", nodePath); err != nil {
 		return err
 	}
 
 	if s.UseYarn {
-		if err := s.Yarn.Build(s.Stager.BuildDir()); err != nil {
+		if err := s.Yarn.Build(pkgDir); err != nil {
+			return err
+		}
+	} else if s.NPMRebuild {
+		s.Log.Info("Prebuild detected (node_modules already exists)")
+		if err := s.NPM.Rebuild(pkgDir); err != nil {
 			return err
 		}
 	} else {
-		if s.NPMRebuild {
-			s.Log.Info("Prebuild detected (node_modules already exists)")
-			if err := s.NPM.Rebuild(s.Stager.BuildDir()); err != nil {
-				return err
-			}
-		} else {
-			if err := s.NPM.Build(pkgDir); err != nil {
-				return err
-			}
+		if err := s.NPM.Build(pkgDir); err != nil {
+			return err
 		}
 	}
 

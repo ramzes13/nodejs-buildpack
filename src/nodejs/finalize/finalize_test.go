@@ -66,16 +66,18 @@ var _ = Describe("Finalize", func() {
 		Expect(err).To(BeNil())
 	})
 
-	FDescribe("MoveNodeModulesToHome", func() {
+	Describe("MoveNodeModulesToHome", func() {
 		BeforeEach(func() {
 			Expect(os.MkdirAll(filepath.Join(depsDir, depsIdx, "packages", "node_modules", "a", "b"), 0755)).To(Succeed())
 		})
+
 		It("moves node_modules back to app directory", func() {
 			Expect(finalizer.MoveNodeModulesToHome()).To(Succeed())
 
 			Expect(filepath.Join(buildDir, "node_modules", "a", "b")).To(BeADirectory())
 			Expect(filepath.Join(depsDir, depsIdx, "packages")).ToNot(BeADirectory())
 		})
+
 		It("unsets NODE_PATH environment variable", func() {
 			os.Setenv("NODE_PATH", "some value")
 

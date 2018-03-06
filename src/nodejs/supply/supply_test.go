@@ -827,14 +827,50 @@ var _ = Describe("Supply", func() {
 	})
 
 	Describe("BuildDependencies", func() {
-		Context("yarn.lock exists", func() {
+		BeforeEach(func() {
+			Expect(ioutil.WriteFile(filepath.Join(buildDir, "package.json"), []byte("My Packages"), 0644)).To(Succeed())
+		})
+
+		It("copies package.json into deps packages", func() {
+			mockNPM.EXPECT().Build(gomock.Any()).AnyTimes()
+			Expect(supplier.BuildDependencies()).To(Succeed())
+			Expect(ioutil.ReadFile(filepath.Join(depDir, "packages", "package.json"))).To(Equal([]byte("My Packages")))
+		})
+
+		It("Sets NODE_PATH environment file", func() {
+			mockNPM.EXPECT().Build(gomock.Any()).AnyTimes()
+			Expect(supplier.BuildDependencies()).To(Succeed())
+
+			Expect(ioutil.ReadFile(filepath.Join(depDir, "env", "NODE_PATH"))).To(Equal([]byte(filepath.Join(depDir, "packages", "node_modules"))))
+		})
+
+		It("Sets NODE_PATH environment variable", func() {
+			mockNPM.EXPECT().Build(gomock.Any()).AnyTimes()
+			Expect(supplier.BuildDependencies()).To(Succeed())
+
+			Expect(os.Getenv("NODE_PATH")).To(Equal(filepath.Join(depDir, "packages", "node_modules")))
+		})
+
+		Context("Using yarn", func() {
 			BeforeEach(func() {
 				supplier.UseYarn = true
-				mockYarn.EXPECT().Build(buildDir).Return(nil)
+				Expect(ioutil.WriteFile(filepath.Join(buildDir, "yarn.lock"), []byte("My yarn.lock"), 0644)).To(Succeed())
+				Expect(os.MkdirAll(filepath.Join(buildDir, "node_modules", "a", "b"), 0755)).To(Succeed())
+				mockYarn.EXPECT().Build(filepath.Join(depDir, "packages")).Return(nil)
 			})
 
-			It("runs yarn install", func() {
+			It("runs yarn build", func() {
 				Expect(supplier.BuildDependencies()).To(Succeed())
+			})
+
+			It("copies node modules", func() {
+				Expect(supplier.BuildDependencies()).To(Succeed())
+				Expect(filepath.Join(depDir, "packages", "node_modules", "a", "b")).To(BeADirectory())
+			})
+
+			It("copies yarn lockfile", func() {
+				Expect(supplier.BuildDependencies()).To(Succeed())
+				Expect(ioutil.ReadFile(filepath.Join(depDir, "packages", "yarn.lock"))).To(Equal([]byte("My yarn.lock")))
 			})
 
 			Context("prebuild is specified", func() {
@@ -862,42 +898,23 @@ var _ = Describe("Supply", func() {
 			})
 		})
 
-		Context("yarn.lock does not exist", func() {
+		Context("using npm", func() {
 			BeforeEach(func() {
-				Expect(ioutil.WriteFile(filepath.Join(buildDir, "package.json"), []byte("My Packages"), 0644)).To(Succeed())
-			})
-			FIt("runs npm install on a copy of package.json inside deps directory", func() {
-				mockNPM.EXPECT().Build(filepath.Join(depDir, "packages")).Return(nil)
-				Expect(supplier.BuildDependencies()).To(Succeed())
-
-				Expect(ioutil.ReadFile(filepath.Join(depDir, "packages", "package.json"))).To(Equal([]byte("My Packages")))
-			})
-			FIt("copies npm version locking files", func() {
 				Expect(ioutil.WriteFile(filepath.Join(buildDir, "npm-shrinkwrap.json"), []byte("My Shrinkwrap"), 0644)).To(Succeed())
 				Expect(ioutil.WriteFile(filepath.Join(buildDir, "package-lock.json"), []byte("My PackageLock"), 0644)).To(Succeed())
+			})
 
+			It("copies npm version locking files", func() {
 				mockNPM.EXPECT().Build(filepath.Join(depDir, "packages")).Return(nil)
 				Expect(supplier.BuildDependencies()).To(Succeed())
 
 				Expect(ioutil.ReadFile(filepath.Join(depDir, "packages", "package-lock.json"))).To(Equal([]byte("My PackageLock")))
 				Expect(ioutil.ReadFile(filepath.Join(depDir, "packages", "npm-shrinkwrap.json"))).To(Equal([]byte("My Shrinkwrap")))
 			})
-			FIt("Sets NODE_PATH environment file", func() {
-				mockNPM.EXPECT().Build(filepath.Join(depDir, "packages")).Return(nil)
-				Expect(supplier.BuildDependencies()).To(Succeed())
-
-				Expect(ioutil.ReadFile(filepath.Join(depDir, "env", "NODE_PATH"))).To(Equal([]byte(filepath.Join(depDir, "packages", "node_modules"))))
-			})
-			FIt("Sets NODE_PATH environment variable", func() {
-				mockNPM.EXPECT().Build(filepath.Join(depDir, "packages")).Return(nil)
-				Expect(supplier.BuildDependencies()).To(Succeed())
-
-				Expect(os.Getenv("NODE_PATH")).To(Equal(filepath.Join(depDir, "packages", "node_modules")))
-			})
 
 			Context("prebuild is specified", func() {
 				BeforeEach(func() {
-					mockNPM.EXPECT().Build(buildDir).Return(nil)
+					mockNPM.EXPECT().Build(filepath.Join(depDir, "packages")).Return(nil)
 					supplier.PreBuild = "prescriptive"
 				})
 
@@ -908,21 +925,9 @@ var _ = Describe("Supply", func() {
 				})
 			})
 
-			Context("npm rebuild is specified", func() {
-				BeforeEach(func() {
-					mockNPM.EXPECT().Rebuild(buildDir).Return(nil)
-					supplier.NPMRebuild = true
-				})
-
-				It("runs npm rebuild ", func() {
-					Expect(supplier.BuildDependencies()).To(Succeed())
-					Expect(buffer.String()).To(ContainSubstring("Prebuild detected (node_modules already exists)"))
-				})
-			})
-
 			Context("postbuild is specified", func() {
 				BeforeEach(func() {
-					mockNPM.EXPECT().Build(buildDir).Return(nil)
+					mockNPM.EXPECT().Build(filepath.Join(depDir, "packages")).Return(nil)
 					supplier.PostBuild = "descriptive"
 				})
 
@@ -930,6 +935,33 @@ var _ = Describe("Supply", func() {
 					mockCommand.EXPECT().Execute(buildDir, gomock.Any(), gomock.Any(), "npm", "run", "heroku-postbuild", "--if-present")
 					Expect(supplier.BuildDependencies()).To(Succeed())
 					Expect(buffer.String()).To(ContainSubstring("Running heroku-postbuild (npm)"))
+				})
+			})
+
+			Context("building", func() {
+				BeforeEach(func() {
+					mockNPM.EXPECT().Build(filepath.Join(depDir, "packages")).Return(nil)
+				})
+
+				It("runs npm build", func() {
+					Expect(supplier.BuildDependencies()).To(Succeed())
+				})
+			})
+
+			Context("rebuilding", func() {
+				BeforeEach(func() {
+					Expect(os.MkdirAll(filepath.Join(buildDir, "node_modules", "a", "b"), 0755)).To(Succeed())
+					mockNPM.EXPECT().Rebuild(filepath.Join(depDir, "packages")).Return(nil)
+					supplier.NPMRebuild = true
+				})
+
+				It("runs npm rebuild", func() {
+					Expect(supplier.BuildDependencies()).To(Succeed())
+				})
+
+				It("copies node modules", func() {
+					Expect(supplier.BuildDependencies()).To(Succeed())
+					Expect(filepath.Join(depDir, "packages", "node_modules", "a", "b")).To(BeADirectory())
 				})
 			})
 		})
