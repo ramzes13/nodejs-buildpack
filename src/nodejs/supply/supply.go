@@ -236,27 +236,12 @@ func (s *Supplier) BuildDependencies() error {
 		return err
 	}
 
-	// TODO
-	// - Unit tests
-	//   - yarn install
-	// - Integration tests
-	//   - Yarn build (and rebuild if exists)
-
-	// app/
-	//   package.json
-	//   package-lock.json
-	//   node_modules/
-	// deps/:idx
-	//   packages/
-	//     package.json
-	//     package-lock.json
-	//     node_modules/
 	pkgDir := filepath.Join(s.Stager.DepDir(), "packages")
 	nodePath := filepath.Join(pkgDir, "node_modules")
-
-	// TODO deal with .cache/yarn, ".npm",  -> cacheDir if exists ;; I BELIEVE THIS IS DONE
-	// TODO what about bower_components
-	if err := copyAll(s.Stager.BuildDir(), pkgDir, []string{"package.json", "package-lock.json", "npm-shrinkwrap.json", "yarn.lock", ".yarnrc", ".npmrc", "node_modules"}); err != nil {
+	if err := copyAll(s.Stager.BuildDir(), pkgDir, []string{"package.json", "package-lock.json", "npm-shrinkwrap.json", "yarn.lock", ".npmrc", "node_modules"}); err != nil {
+		return err
+	}
+	if err := copyAll(s.Stager.BuildDir(), os.Getenv("HOME"), []string{".yarnrc"}); err != nil {
 		return err
 	}
 
