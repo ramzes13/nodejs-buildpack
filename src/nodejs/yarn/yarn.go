@@ -1,7 +1,6 @@
 package yarn
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -28,57 +27,40 @@ func (y *Yarn) Build(buildDir, pkgDir, cacheDir string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Offline:", offline)
 
-	installArgs := []string{"install", "--pure-lockfile", "--ignore-engines", "--cache-folder", filepath.Join(cacheDir, ".cache/yarn")}
+	installArgs := []string{"install", "--pure-lockfile", "--ignore-engines", "--cache-folder", filepath.Join(cacheDir, ".cache/yarn"), "--modules-folder", filepath.Join(pkgDir, "node_modules")}
 	checkArgs := []string{"check"}
 
-	var npmOfflineCache, offlineMirrorPruning string
+	yarnConfig := map[string]string{}
 	if offline {
-		y.Log.Info("Found yarn mirror directory %s", npmOfflineCache)
+		yarnOfflineMirror := filepath.Join(buildDir, "npm-packages-offline-cache")
+		y.Log.Info("Found yarn mirror directory %s", yarnOfflineMirror)
 		y.Log.Info("Running yarn in offline mode")
 
 		installArgs = append(installArgs, "--offline")
 		checkArgs = append(checkArgs, "--offline")
 
-		npmOfflineCache = filepath.Join(buildDir, "npm-packages-offline-cache")
-		offlineMirrorPruning = "false"
+		yarnConfig["yarn-offline-mirror"] = yarnOfflineMirror
+		yarnConfig["yarn-offline-mirror-pruning"] = "false"
 	} else {
 		y.Log.Info("Running yarn in online mode")
 		y.Log.Info("To run yarn in offline mode, see: https://yarnpkg.com/blog/2016/11/24/offline-mirror")
 
-		npmOfflineCache = filepath.Join(cacheDir, "npm-packages-offline-cache")
-		offlineMirrorPruning = "true"
+		yarnConfig["yarn-offline-mirror"] = filepath.Join(cacheDir, "npm-packages-offline-cache")
+		yarnConfig["yarn-offline-mirror-pruning"] = "true"
 	}
 
-	if err := y.Command.Execute(pkgDir, y.Log.Output(), y.Log.Output(), "yarn", "config", "set", "yarn-offline-mirror", npmOfflineCache); err != nil {
-		return err
+	for k, v := range yarnConfig {
+		if err := y.Command.Execute(pkgDir, ioutil.Discard, os.Stderr, "yarn", "config", "set", k, v); err != nil {
+			return err
+		}
 	}
-	if err := y.Command.Execute(pkgDir, y.Log.Output(), y.Log.Output(), "yarn", "config", "set", "yarn-offline-mirror-pruning", offlineMirrorPruning); err != nil {
-		return err
-	}
-	if err := y.Command.Execute(pkgDir, y.Log.Output(), y.Log.Output(), "yarn", "config", "set", "cache-folder", filepath.Join(cacheDir, ".cache/yarn")); err != nil {
-		return err
-	}
-	if err := y.Command.Execute(pkgDir, y.Log.Output(), y.Log.Output(), "yarn", "config", "list"); err != nil {
-		return err
-	}
-	if err := y.Command.Execute(pkgDir, y.Log.Output(), y.Log.Output(), "yarn", "config", "current"); err != nil {
-		return err
-	}
-
-	fmt.Println(installArgs)
-
-	env := os.Environ()
-	env = append(env, "YARN_CACHE_FOLDER="+filepath.Join(cacheDir, ".cache/yarn"))
-	env = append(env, "npm_config_nodedir="+os.Getenv("NODE_HOME"))
-	fmt.Println("npm_config_nodedir=" + os.Getenv("NODE_HOME"))
 
 	cmd := exec.Command("yarn", installArgs...)
 	cmd.Dir = pkgDir
 	cmd.Stdout = y.Log.Output()
 	cmd.Stderr = y.Log.Output()
-	cmd.Env = env
+	cmd.Env = append(os.Environ(), "npm_config_nodedir="+os.Getenv("NODE_HOME"))
 	if err := y.Command.Run(cmd); err != nil {
 		return err
 	}

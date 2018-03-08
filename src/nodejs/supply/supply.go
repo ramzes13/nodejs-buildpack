@@ -15,11 +15,11 @@ import (
 	"github.com/cloudfoundry/libbuildpack/checksum"
 )
 
-type Cache interface {
-	Initialize() error
-	Restore() error
-	Save() error
-}
+// type Cache interface {
+// 	Initialize() error
+// 	Restore() error
+// 	Save() error
+// }
 
 type Command interface {
 	Execute(string, io.Writer, io.Writer, string, ...string) error
@@ -33,8 +33,8 @@ type Manifest interface {
 }
 
 type NPM interface {
-	Build(string) error
-	Rebuild(string) error
+	Build(string, string) error
+	Rebuild(string, string) error
 }
 
 type Yarn interface {
@@ -67,9 +67,9 @@ type Supplier struct {
 	PostBuild          string
 	UseYarn            bool
 	NPMRebuild         bool
-	Cache              Cache
-	Yarn               Yarn
-	NPM                NPM
+	// Cache              Cache
+	Yarn Yarn
+	NPM  NPM
 }
 
 type packageJSON struct {
@@ -131,13 +131,8 @@ func Run(s *Supplier) error {
 
 	s.ListNodeConfig(os.Environ())
 
-	if err := s.Cache.Initialize(); err != nil {
-		s.Log.Error("Unable to initialize cache: %s", err.Error())
-		return err
-	}
-
-	if err := s.Cache.Restore(); err != nil {
-		s.Log.Error("Unable to restore cache: %s", err.Error())
+	if err := s.OverrideCacheFromApp(); err != nil {
+		s.Log.Error("Unable to copy cache directories: %s", err.Error())
 		return err
 	}
 
@@ -149,11 +144,6 @@ func Run(s *Supplier) error {
 
 	if err := s.BuildDependencies(); err != nil {
 		s.Log.Error("Unable to build dependencies: %s", err.Error())
-		return err
-	}
-
-	if err := s.Cache.Save(); err != nil {
-		s.Log.Error("Unable to save cache: %s", err.Error())
 		return err
 	}
 
@@ -264,29 +254,10 @@ func (s *Supplier) BuildDependencies() error {
 	pkgDir := filepath.Join(s.Stager.DepDir(), "packages")
 	nodePath := filepath.Join(pkgDir, "node_modules")
 
-	// TODO deal with .cache/yarn -> cacheDir if exists
-	for _, filename := range []string{"package.json", "package-lock.json", "npm-shrinkwrap.json", "yarn.lock", ".yarnrc", ".npmrc", "node_modules", ".npm", "bower_components"} {
-		fi, err := os.Stat(filepath.Join(s.Stager.BuildDir(), filename))
-		if err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
-			return err
-		}
-		if fi.IsDir() {
-			fmt.Println("CopyDir:", filename)
-			if err := os.MkdirAll(filepath.Join(pkgDir, filename), 0755); err != nil {
-				return err
-			}
-			if err := libbuildpack.CopyDirectory(filepath.Join(s.Stager.BuildDir(), filename), filepath.Join(pkgDir, filename)); err != nil && !os.IsNotExist(err) {
-				return err
-			}
-		} else {
-			fmt.Println("Copy:", filename)
-			if err := libbuildpack.CopyFile(filepath.Join(s.Stager.BuildDir(), filename), filepath.Join(pkgDir, filename)); err != nil && !os.IsNotExist(err) {
-				return err
-			}
-		}
+	// TODO deal with .cache/yarn, ".npm",  -> cacheDir if exists ;; I BELIEVE THIS IS DONE
+	// TODO what about bower_components
+	if err := copyAll(s.Stager.BuildDir(), pkgDir, []string{"package.json", "package-lock.json", "npm-shrinkwrap.json", "yarn.lock", ".yarnrc", ".npmrc", "node_modules"}); err != nil {
+		return err
 	}
 
 	if err := s.Stager.WriteEnvFile("NODE_PATH", nodePath); err != nil {
@@ -303,11 +274,11 @@ func (s *Supplier) BuildDependencies() error {
 		}
 	} else if s.NPMRebuild {
 		s.Log.Info("Prebuild detected (node_modules already exists)")
-		if err := s.NPM.Rebuild(pkgDir); err != nil {
+		if err := s.NPM.Rebuild(pkgDir, s.Stager.CacheDir()); err != nil {
 			return err
 		}
 	} else {
-		if err := s.NPM.Build(pkgDir); err != nil {
+		if err := s.NPM.Build(pkgDir, s.Stager.CacheDir()); err != nil {
 			return err
 		}
 	}
@@ -646,4 +617,44 @@ export WEB_CONCURRENCY=${WEB_CONCURRENCY:-1}
 `
 
 	return s.Stager.WriteProfileD("node.sh", fmt.Sprintf(scriptContents, filepath.Join("$DEPS_DIR", s.Stager.DepsIdx(), "node")))
+}
+
+func copyAll(srcDir, destDir string, files []string) error {
+	for _, filename := range files {
+		fi, err := os.Stat(filepath.Join(srcDir, filename))
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return err
+		}
+		if fi.IsDir() {
+			if err := os.RemoveAll(filepath.Join(destDir, filename)); err != nil {
+				return err
+			}
+			if err := os.MkdirAll(filepath.Join(destDir, filename), 0755); err != nil {
+				return err
+			}
+			if err := libbuildpack.CopyDirectory(filepath.Join(srcDir, filename), filepath.Join(destDir, filename)); err != nil && !os.IsNotExist(err) {
+				return err
+			}
+		} else {
+			if err := libbuildpack.CopyFile(filepath.Join(srcDir, filename), filepath.Join(destDir, filename)); err != nil && !os.IsNotExist(err) {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (s *Supplier) OverrideCacheFromApp() error {
+	deprecatedCacheDirs := []string{"bower_components"}
+	for _, name := range deprecatedCacheDirs {
+		os.RemoveAll(filepath.Join(s.Stager.CacheDir(), name))
+	}
+
+	pkgMgrCacheDirs := []string{".cache/yarn", ".npm"}
+	if err := copyAll(s.Stager.BuildDir(), s.Stager.CacheDir(), pkgMgrCacheDirs); err != nil {
+		return err
+	}
 }
