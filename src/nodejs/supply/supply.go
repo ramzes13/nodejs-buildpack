@@ -34,7 +34,7 @@ type Manifest interface {
 
 type NPM interface {
 	Build(string, string) error
-	Rebuild(string, string) error
+	Rebuild(string) error
 }
 
 type Yarn interface {
@@ -274,7 +274,7 @@ func (s *Supplier) BuildDependencies() error {
 		}
 	} else if s.NPMRebuild {
 		s.Log.Info("Prebuild detected (node_modules already exists)")
-		if err := s.NPM.Rebuild(pkgDir, s.Stager.CacheDir()); err != nil {
+		if err := s.NPM.Rebuild(pkgDir); err != nil {
 			return err
 		}
 	} else {
