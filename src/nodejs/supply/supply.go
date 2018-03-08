@@ -238,10 +238,7 @@ func (s *Supplier) BuildDependencies() error {
 
 	pkgDir := filepath.Join(s.Stager.DepDir(), "packages")
 	nodePath := filepath.Join(pkgDir, "node_modules")
-	if err := copyAll(s.Stager.BuildDir(), pkgDir, []string{"package.json", "package-lock.json", "npm-shrinkwrap.json", "yarn.lock", ".npmrc", "node_modules"}); err != nil {
-		return err
-	}
-	if err := copyAll(s.Stager.BuildDir(), os.Getenv("HOME"), []string{".yarnrc"}); err != nil {
+	if err := copyAll(s.Stager.BuildDir(), pkgDir, []string{"package.json", "package-lock.json", "npm-shrinkwrap.json", "yarn.lock", ".npmrc", ".yarnrc", "node_modules"}); err != nil {
 		return err
 	}
 

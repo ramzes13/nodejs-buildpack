@@ -51,7 +51,12 @@ func (y *Yarn) Build(buildDir, pkgDir, cacheDir string) error {
 	}
 
 	for k, v := range yarnConfig {
-		if err := y.Command.Execute(pkgDir, ioutil.Discard, os.Stderr, "yarn", "config", "set", k, v); err != nil {
+		cmd := exec.Command("yarn", "config", "set", k, v)
+		cmd.Dir = pkgDir
+		cmd.Stdout = ioutil.Discard
+		cmd.Stderr = os.Stderr
+		cmd.Env = append(os.Environ(), "HOME="+pkgDir)
+		if err := y.Command.Run(cmd); err != nil {
 			return err
 		}
 	}
