@@ -657,4 +657,6 @@ func (s *Supplier) OverrideCacheFromApp() error {
 	if err := copyAll(s.Stager.BuildDir(), s.Stager.CacheDir(), pkgMgrCacheDirs); err != nil {
 		return err
 	}
+
+	return nil
 }
