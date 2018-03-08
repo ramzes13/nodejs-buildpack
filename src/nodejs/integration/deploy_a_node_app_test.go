@@ -123,7 +123,7 @@ var _ = Describe("CF NodeJS Buildpack", func() {
 	})
 
 	Context("with an app that has vendored dependencies", func() {
-		FIt("deploys", func() {
+		It("deploys", func() {
 			app = cutlass.New(filepath.Join(bpDir, "fixtures", "vendored_dependencies"))
 			app.SetEnv("BP_DEBUG", "true")
 			PushAppAndConfirm(app)
@@ -164,7 +164,7 @@ var _ = Describe("CF NodeJS Buildpack", func() {
 			app.SetEnv("BP_DEBUG", "true")
 		})
 
-		FIt("successfully deploys and vendors the dependencies via yarn", func() {
+		It("successfully deploys and vendors the dependencies via yarn", func() {
 			PushAppAndConfirm(app)
 
 			By("not changing the app directory during staging", func() {
@@ -182,13 +182,13 @@ var _ = Describe("CF NodeJS Buildpack", func() {
 		AssertUsesProxyDuringStagingIfPresent("with_yarn")
 	})
 
-	Context("with an app with a yarn.lock and vendored dependencies", func() {
+	FContext("with an app with a yarn.lock and vendored dependencies", func() {
 		BeforeEach(func() {
 			app = cutlass.New(filepath.Join(bpDir, "fixtures", "with_yarn_vendored"))
 			app.SetEnv("BP_DEBUG", "true")
 		})
 
-		FIt("deploys without hitting the internet", func() {
+		It("deploys without hitting the internet", func() {
 			PushAppAndConfirm(app)
 
 			By("not changing the app directory during staging", func() {
@@ -233,7 +233,7 @@ var _ = Describe("CF NodeJS Buildpack", func() {
 			app.SetEnv("BP_DEBUG", "true")
 		})
 
-		FIt("successfully deploys and vendors the dependencies", func() {
+		It("successfully deploys and vendors the dependencies", func() {
 			PushAppAndConfirm(app)
 
 			Expect(filepath.Join(app.Path, "node_modules")).ToNot(BeADirectory())
