@@ -38,11 +38,12 @@ type NPM interface {
 }
 
 type Yarn interface {
-	Build(string) error
+	Build(string, string, string) error
 }
 
 type Stager interface {
 	BuildDir() string
+	CacheDir() string
 	DepDir() string
 	DepsIdx() string
 	LinkDirectoryInDepDir(string, string) error
@@ -262,18 +263,30 @@ func (s *Supplier) BuildDependencies() error {
 	//     node_modules/
 	pkgDir := filepath.Join(s.Stager.DepDir(), "packages")
 	nodePath := filepath.Join(pkgDir, "node_modules")
-	if err := os.MkdirAll(nodePath, 0755); err != nil {
-		return err
-	}
 
-	for _, filename := range []string{"package.json", "package-lock.json", "npm-shrinkwrap.json", "yarn.lock"} {
-		if err := libbuildpack.CopyFile(filepath.Join(s.Stager.BuildDir(), filename), filepath.Join(pkgDir, filename)); err != nil && !os.IsNotExist(err) {
+	// TODO deal with .cache/yarn -> cacheDir if exists
+	for _, filename := range []string{"package.json", "package-lock.json", "npm-shrinkwrap.json", "yarn.lock", ".yarnrc", ".npmrc", "node_modules", ".npm", "bower_components"} {
+		fi, err := os.Stat(filepath.Join(s.Stager.BuildDir(), filename))
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
 			return err
 		}
-	}
-
-	if err := libbuildpack.CopyDirectory(filepath.Join(s.Stager.BuildDir(), "node_modules"), nodePath); err != nil && !os.IsNotExist(err) {
-		return err
+		if fi.IsDir() {
+			fmt.Println("CopyDir:", filename)
+			if err := os.MkdirAll(filepath.Join(pkgDir, filename), 0755); err != nil {
+				return err
+			}
+			if err := libbuildpack.CopyDirectory(filepath.Join(s.Stager.BuildDir(), filename), filepath.Join(pkgDir, filename)); err != nil && !os.IsNotExist(err) {
+				return err
+			}
+		} else {
+			fmt.Println("Copy:", filename)
+			if err := libbuildpack.CopyFile(filepath.Join(s.Stager.BuildDir(), filename), filepath.Join(pkgDir, filename)); err != nil && !os.IsNotExist(err) {
+				return err
+			}
+		}
 	}
 
 	if err := s.Stager.WriteEnvFile("NODE_PATH", nodePath); err != nil {
@@ -285,7 +298,7 @@ func (s *Supplier) BuildDependencies() error {
 	}
 
 	if s.UseYarn {
-		if err := s.Yarn.Build(pkgDir); err != nil {
+		if err := s.Yarn.Build(s.Stager.BuildDir(), pkgDir, s.Stager.CacheDir()); err != nil {
 			return err
 		}
 	} else if s.NPMRebuild {

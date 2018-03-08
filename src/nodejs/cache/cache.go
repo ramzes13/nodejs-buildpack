@@ -33,7 +33,7 @@ type Cache struct {
 	PackageJSONCacheDirs []string
 }
 
-var defaultCacheDirs = []string{".npm", ".cache/yarn", "bower_components"}
+var defaultCacheDirs = []string{".npm", "bower_components"}
 var cacheDirsToDelete = []string{".npm", ".cache/yarn", "bower_components", "node"}
 
 func (c *Cache) Initialize() error {

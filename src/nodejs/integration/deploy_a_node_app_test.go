@@ -182,13 +182,13 @@ var _ = Describe("CF NodeJS Buildpack", func() {
 		AssertUsesProxyDuringStagingIfPresent("with_yarn")
 	})
 
-	FContext("with an app with a yarn.lock and vendored dependencies", func() {
+	Context("with an app with a yarn.lock and vendored dependencies", func() {
 		BeforeEach(func() {
 			app = cutlass.New(filepath.Join(bpDir, "fixtures", "with_yarn_vendored"))
 			app.SetEnv("BP_DEBUG", "true")
 		})
 
-		It("deploys without hitting the internet", func() {
+		FIt("deploys without hitting the internet", func() {
 			PushAppAndConfirm(app)
 
 			By("not changing the app directory during staging", func() {
