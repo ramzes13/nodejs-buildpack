@@ -99,7 +99,16 @@ var _ = Describe("Finalize", func() {
 				Expect(filepath.Join(buildDir, "node_modules", "c", "d")).ToNot(BeADirectory())
 				Expect(filepath.Join(depsDir, depsIdx, "packages")).ToNot(BeADirectory())
 			})
+		})
 
+		Context("pkgDir/node_modules does NOT exist", func() {
+			BeforeEach(func() {
+				Expect(os.RemoveAll(filepath.Join(depsDir, depsIdx, "packages", "node_modules"))).To(Succeed())
+			})
+
+			It("does nothing", func() {
+				Expect(finalizer.MoveNodeModulesToHome()).To(Succeed())
+			})
 		})
 	})
 

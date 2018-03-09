@@ -15,12 +15,6 @@ import (
 	"github.com/cloudfoundry/libbuildpack/checksum"
 )
 
-// type Cache interface {
-// 	Initialize() error
-// 	Restore() error
-// 	Save() error
-// }
-
 type Command interface {
 	Execute(string, io.Writer, io.Writer, string, ...string) error
 }
@@ -67,9 +61,8 @@ type Supplier struct {
 	PostBuild          string
 	UseYarn            bool
 	NPMRebuild         bool
-	// Cache              Cache
-	Yarn Yarn
-	NPM  NPM
+	Yarn               Yarn
+	NPM                NPM
 }
 
 type packageJSON struct {
