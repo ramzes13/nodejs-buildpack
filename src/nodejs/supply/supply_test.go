@@ -23,6 +23,7 @@ var _ = Describe("Supply", func() {
 	var (
 		err             error
 		buildDir        string
+		cacheDir        string
 		depsDir         string
 		depsIdx         string
 		depDir          string
@@ -40,6 +41,8 @@ var _ = Describe("Supply", func() {
 
 	BeforeEach(func() {
 		depsDir, err = ioutil.TempDir("", "nodejs-buildpack.deps.")
+		Expect(err).To(BeNil())
+		cacheDir, err = ioutil.TempDir("", "nodejs-buildpack.cache.")
 		Expect(err).To(BeNil())
 
 		buildDir, err = ioutil.TempDir("", "nodejs-buildpack.build.")
@@ -84,7 +87,7 @@ var _ = Describe("Supply", func() {
 			Expect(err).To(BeNil())
 		}
 
-		args := []string{buildDir, "", depsDir, depsIdx}
+		args := []string{buildDir, cacheDir, depsDir, depsIdx}
 		stager := libbuildpack.NewStager(args, logger, &libbuildpack.Manifest{})
 
 		supplier = &supply.Supplier{
@@ -832,20 +835,20 @@ var _ = Describe("Supply", func() {
 		})
 
 		It("copies package.json into deps packages", func() {
-			mockNPM.EXPECT().Build(gomock.Any()).AnyTimes()
+			mockNPM.EXPECT().Build(gomock.Any(), gomock.Any()).AnyTimes()
 			Expect(supplier.BuildDependencies()).To(Succeed())
 			Expect(ioutil.ReadFile(filepath.Join(depDir, "packages", "package.json"))).To(Equal([]byte("My Packages")))
 		})
 
 		It("Sets NODE_PATH environment file", func() {
-			mockNPM.EXPECT().Build(gomock.Any()).AnyTimes()
+			mockNPM.EXPECT().Build(gomock.Any(), gomock.Any()).AnyTimes()
 			Expect(supplier.BuildDependencies()).To(Succeed())
 
 			Expect(ioutil.ReadFile(filepath.Join(depDir, "env", "NODE_PATH"))).To(Equal([]byte(filepath.Join(depDir, "packages", "node_modules"))))
 		})
 
 		It("Sets NODE_PATH environment variable", func() {
-			mockNPM.EXPECT().Build(gomock.Any()).AnyTimes()
+			mockNPM.EXPECT().Build(gomock.Any(), gomock.Any()).AnyTimes()
 			Expect(supplier.BuildDependencies()).To(Succeed())
 
 			Expect(os.Getenv("NODE_PATH")).To(Equal(filepath.Join(depDir, "packages", "node_modules")))
@@ -856,7 +859,7 @@ var _ = Describe("Supply", func() {
 				supplier.UseYarn = true
 				Expect(ioutil.WriteFile(filepath.Join(buildDir, "yarn.lock"), []byte("My yarn.lock"), 0644)).To(Succeed())
 				Expect(os.MkdirAll(filepath.Join(buildDir, "node_modules", "a", "b"), 0755)).To(Succeed())
-				mockYarn.EXPECT().Build(filepath.Join(depDir, "packages")).Return(nil)
+				mockYarn.EXPECT().Build(buildDir, filepath.Join(depDir, "packages"), cacheDir).Return(nil)
 			})
 
 			It("runs yarn build", func() {
@@ -905,7 +908,7 @@ var _ = Describe("Supply", func() {
 			})
 
 			It("copies npm version locking files", func() {
-				mockNPM.EXPECT().Build(filepath.Join(depDir, "packages")).Return(nil)
+				mockNPM.EXPECT().Build(filepath.Join(depDir, "packages"), cacheDir).Return(nil)
 				Expect(supplier.BuildDependencies()).To(Succeed())
 
 				Expect(ioutil.ReadFile(filepath.Join(depDir, "packages", "package-lock.json"))).To(Equal([]byte("My PackageLock")))
@@ -914,7 +917,7 @@ var _ = Describe("Supply", func() {
 
 			Context("prebuild is specified", func() {
 				BeforeEach(func() {
-					mockNPM.EXPECT().Build(filepath.Join(depDir, "packages")).Return(nil)
+					mockNPM.EXPECT().Build(filepath.Join(depDir, "packages"), cacheDir).Return(nil)
 					supplier.PreBuild = "prescriptive"
 				})
 
@@ -927,7 +930,7 @@ var _ = Describe("Supply", func() {
 
 			Context("postbuild is specified", func() {
 				BeforeEach(func() {
-					mockNPM.EXPECT().Build(filepath.Join(depDir, "packages")).Return(nil)
+					mockNPM.EXPECT().Build(filepath.Join(depDir, "packages"), cacheDir).Return(nil)
 					supplier.PostBuild = "descriptive"
 				})
 
@@ -940,7 +943,7 @@ var _ = Describe("Supply", func() {
 
 			Context("building", func() {
 				BeforeEach(func() {
-					mockNPM.EXPECT().Build(filepath.Join(depDir, "packages")).Return(nil)
+					mockNPM.EXPECT().Build(filepath.Join(depDir, "packages"), cacheDir).Return(nil)
 				})
 
 				It("runs npm build", func() {
