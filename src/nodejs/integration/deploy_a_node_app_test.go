@@ -218,7 +218,7 @@ var _ = Describe("CF NodeJS Buildpack", func() {
 			app = cutlass.New(filepath.Join(bpDir, "fixtures", "pre_post_commands"))
 		})
 
-		FIt("runs the scripts through npm run", func() {
+		It("runs the scripts through npm run", func() {
 			PushAppAndConfirm(app)
 			Eventually(app.Stdout.String).Should(ContainSubstring("Running heroku-prebuild (npm)"))
 			Eventually(app.Stdout.String).Should(ContainSubstring("Running heroku-postbuild (npm)"))
