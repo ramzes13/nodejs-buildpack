@@ -829,6 +829,38 @@ var _ = Describe("Supply", func() {
 		})
 	})
 
+	Describe("OverrideCacheFromApp", func() {
+		Context("cache dir has deprecated bower_components directory", func() {
+			BeforeEach(func() {
+				Expect(os.MkdirAll(filepath.Join(cacheDir, "bower_components", "subdir"), 0755)).To(Succeed())
+			})
+			It("deletes the deprecated directory", func() {
+				Expect(supplier.OverrideCacheFromApp()).To(Succeed())
+				Expect(filepath.Join(cacheDir, "bower_components", "subdir")).ToNot(BeADirectory())
+			})
+		})
+		Context("app has '.npm' directory", func() {
+			BeforeEach(func() {
+				Expect(os.MkdirAll(filepath.Join(buildDir, ".npm", "subdir"), 0755)).To(Succeed())
+			})
+			It("copies directory to cache", func() {
+				Expect(supplier.OverrideCacheFromApp()).To(Succeed())
+				Expect(filepath.Join(buildDir, ".npm", "subdir")).To(BeADirectory())
+				Expect(filepath.Join(cacheDir, ".npm", "subdir")).To(BeADirectory())
+			})
+		})
+		Context("app has '.cache/yarn' directory", func() {
+			BeforeEach(func() {
+				Expect(os.MkdirAll(filepath.Join(buildDir, ".cache", "yarn", "subdir"), 0755)).To(Succeed())
+			})
+			It("copies directory to cache", func() {
+				Expect(supplier.OverrideCacheFromApp()).To(Succeed())
+				Expect(filepath.Join(buildDir, ".cache", "yarn", "subdir")).To(BeADirectory())
+				Expect(filepath.Join(cacheDir, ".cache", "yarn", "subdir")).To(BeADirectory())
+			})
+		})
+	})
+
 	Describe("BuildDependencies", func() {
 		BeforeEach(func() {
 			Expect(ioutil.WriteFile(filepath.Join(buildDir, "package.json"), []byte("My Packages"), 0644)).To(Succeed())
