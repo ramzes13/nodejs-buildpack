@@ -28,7 +28,7 @@ var _ = Describe("CF NodeJS Buildpack", func() {
 		It("resolves to a nodeJS version successfully", func() {
 			PushAppAndConfirm(app)
 
-			Expect(app.Stdout.String()).To(MatchRegexp("Installing node 4\\.\\d+\\.\\d+"))
+			Eventually(app.Stdout.String).Should(MatchRegexp("Installing node 4\\.\\d+\\.\\d+"))
 			Expect(app.GetBody("/")).To(ContainSubstring("Hello, World!"))
 		})
 	})
@@ -41,7 +41,7 @@ var _ = Describe("CF NodeJS Buildpack", func() {
 		It("resolves to a nodeJS version successfully", func() {
 			PushAppAndConfirm(app)
 
-			Expect(app.Stdout.String()).To(MatchRegexp("Installing node 6\\.\\d+\\.\\d+"))
+			Eventually(app.Stdout.String).Should(MatchRegexp("Installing node 6\\.\\d+\\.\\d+"))
 			Expect(app.GetBody("/")).To(ContainSubstring("Hello, World!"))
 
 			if ApiHasTask() {
@@ -68,7 +68,7 @@ var _ = Describe("CF NodeJS Buildpack", func() {
 		It("resolves to the stable nodeJS version successfully", func() {
 			PushAppAndConfirm(app)
 
-			Expect(app.Stdout.String()).To(MatchRegexp("Installing node 6\\.\\d+\\.\\d+"))
+			Eventually(app.Stdout.String).Should(MatchRegexp("Installing node 6\\.\\d+\\.\\d+"))
 			Expect(app.GetBody("/")).To(ContainSubstring("Hello, World!"))
 		})
 	})
@@ -140,7 +140,7 @@ var _ = Describe("CF NodeJS Buildpack", func() {
 				By("with an uncached buildpack", func() {
 					By("successfully deploys and includes the dependencies", func() {
 						Expect(app.GetBody("/")).To(ContainSubstring("0000000005"))
-						Expect(app.Stdout.String()).To(ContainSubstring("Download [https://"))
+						Eventually(app.Stdout.String).Should(ContainSubstring("Download [https://"))
 					})
 				})
 			}
@@ -149,7 +149,7 @@ var _ = Describe("CF NodeJS Buildpack", func() {
 				By("with a cached buildpack", func() {
 					By("deploys without hitting the internet", func() {
 						Expect(app.GetBody("/")).To(ContainSubstring("0000000005"))
-						Expect(app.Stdout.String()).To(ContainSubstring("Copy [/tmp/buildpacks/"))
+						Eventually(app.Stdout.String).Should(ContainSubstring("Copy [/tmp/buildpacks/"))
 					})
 				})
 			}
@@ -171,7 +171,7 @@ var _ = Describe("CF NodeJS Buildpack", func() {
 				Expect(app).To(HaveUnchangedAppdir("BuildDir Checksum Before Supply", "BuildDir Checksum After Supply"))
 			})
 
-			Expect(app.Stdout.String()).To(ContainSubstring("Running yarn in online mode"))
+			Eventually(app.Stdout.String).Should(ContainSubstring("Running yarn in online mode"))
 
 			Expect(filepath.Join(app.Path, "node_modules")).ToNot(BeADirectory())
 			Expect(app.Files("app")).To(ContainElement("app/node_modules"))
@@ -188,14 +188,14 @@ var _ = Describe("CF NodeJS Buildpack", func() {
 			app.SetEnv("BP_DEBUG", "true")
 		})
 
-		FIt("deploys without hitting the internet", func() {
+		It("deploys without hitting the internet", func() {
 			PushAppAndConfirm(app)
 
 			By("not changing the app directory during staging", func() {
 				Expect(app).To(HaveUnchangedAppdir("BuildDir Checksum Before Supply", "BuildDir Checksum After Supply"))
 			})
 
-			Expect(app.Stdout.String()).To(ContainSubstring("Running yarn in offline mode"))
+			Eventually(app.Stdout.String).Should(ContainSubstring("Running yarn in offline mode"))
 			Expect(app.GetBody("/microtime")).To(MatchRegexp("native time: \\d+\\.\\d+"))
 		})
 
@@ -209,7 +209,7 @@ var _ = Describe("CF NodeJS Buildpack", func() {
 
 		It("warns that yarn.lock is out of date", func() {
 			PushAppAndConfirm(app)
-			Expect(app.Stdout.String()).To(ContainSubstring("yarn.lock is outdated"))
+			Eventually(app.Stdout.String).Should(ContainSubstring("yarn.lock is outdated"))
 		})
 	})
 
@@ -218,10 +218,10 @@ var _ = Describe("CF NodeJS Buildpack", func() {
 			app = cutlass.New(filepath.Join(bpDir, "fixtures", "pre_post_commands"))
 		})
 
-		It("runs the scripts through npm run", func() {
+		FIt("runs the scripts through npm run", func() {
 			PushAppAndConfirm(app)
-			Expect(app.Stdout.String()).To(ContainSubstring("Running heroku-prebuild (npm)"))
-			Expect(app.Stdout.String()).To(ContainSubstring("Running heroku-postbuild (npm)"))
+			Eventually(app.Stdout.String).Should(ContainSubstring("Running heroku-prebuild (npm)"))
+			Eventually(app.Stdout.String).Should(ContainSubstring("Running heroku-postbuild (npm)"))
 			Expect(app.GetBody("/")).To(ContainSubstring("Text: Hello Buildpacks Team"))
 			Expect(app.GetBody("/")).To(ContainSubstring("Text: Goodbye Buildpacks Team"))
 		})
@@ -242,7 +242,7 @@ var _ = Describe("CF NodeJS Buildpack", func() {
 			Expect(app.GetBody("/")).To(ContainSubstring("Hello, World!"))
 
 			By("outputs protip that recommends user vendors dependencies", func() {
-				Expect(app.Stdout.String()).To(MatchRegexp("PRO TIP:(.*) It is recommended to vendor the application's Node.js dependencies"))
+				Eventually(app.Stdout.String).Should(MatchRegexp("PRO TIP:(.*) It is recommended to vendor the application's Node.js dependencies"))
 			})
 
 			Expect(app).To(HaveUnchangedAppdir("BuildDir Checksum Before Supply", "BuildDir Checksum After Supply"))
@@ -330,7 +330,7 @@ var _ = Describe("CF NodeJS Buildpack", func() {
 
 		It("sets the NODE_HOME to correct value", func() {
 			PushAppAndConfirm(app)
-			Expect(app.Stdout.String()).To(MatchRegexp("NODE_HOME=\\S*/0/node"))
+			Eventually(app.Stdout.String).Should(MatchRegexp("NODE_HOME=\\S*/0/node"))
 
 			body, err := app.GetBody("/")
 			Expect(err).To(BeNil())

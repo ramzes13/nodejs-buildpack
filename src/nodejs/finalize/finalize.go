@@ -60,11 +60,16 @@ func (f *Finalizer) MoveNodeModulesToHome() error {
 	if err := os.Unsetenv("NODE_PATH"); err != nil {
 		return err
 	}
-	os.RemoveAll(filepath.Join(f.Stager.BuildDir(), "node_modules"))
-	if err := os.Rename(filepath.Join(f.Stager.DepDir(), "packages", "node_modules"), filepath.Join(f.Stager.BuildDir(), "node_modules")); err != nil {
+	pkgDir := filepath.Join(f.Stager.DepDir(), "packages")
+	if exist, err := libbuildpack.FileExists(filepath.Join(pkgDir, "node_modules")); err != nil {
 		return err
+	} else if exist {
+		os.RemoveAll(filepath.Join(f.Stager.BuildDir(), "node_modules"))
+		if err := os.Rename(filepath.Join(pkgDir, "node_modules"), filepath.Join(f.Stager.BuildDir(), "node_modules")); err != nil {
+			return err
+		}
 	}
-	return os.RemoveAll(filepath.Join(f.Stager.DepDir(), "packages"))
+	return os.RemoveAll(pkgDir)
 }
 
 func (f *Finalizer) ReadPackageJSON() error {
